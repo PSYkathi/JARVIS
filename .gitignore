@@ -1,0 +1,22 @@
+# Virtual environment
+jarvis_env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Checkpoints (too large for GitHub)
+checkpoints/*.pt
+checkpoints/*.pth
+
+# Large data files
+data/raw/
+data/clean/
+
+# VS Code
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini
