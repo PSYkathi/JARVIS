@@ -19,4 +19,5 @@ data/clean/
 
 # Windows
 Thumbs.db
-desktop.ini
+desktop.ini"models/" 
+"data/train_tokens.pt" 
