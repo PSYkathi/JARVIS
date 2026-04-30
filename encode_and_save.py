@@ -59,7 +59,7 @@ for fname in sorted(os.listdir('data/clean')):
             all_text += f.read() + "\n"
 
 # Use 1M chars first (fast, enough to train well)
-sample = all_text[:3_000_000]
+sample = all_text
 print(f"Encoding {len(sample):,} characters...\n")
 
 start = time.time()

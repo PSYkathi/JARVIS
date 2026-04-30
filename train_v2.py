@@ -169,13 +169,17 @@ def main():
     params = sum(p.numel() for p in model.parameters())
     print(f"\nModel parameters: {params:,}")
 
+    checkpoint = torch.load('models/jarvis_v2_best.pt',map_location=device)
+    model.load_state_dict(checkpoint['model'])
+    print(f"Resumed from loss: {checkpoint['val_loss']:.4f}")
+
     # Training hyperparams
-    BATCH_SIZE   = 32
+    BATCH_SIZE   = 64
     CONTEXT      = cfg.context_len
-    LR           = 3e-4
+    LR           = 1e-4
     EPOCHS       = 10
-    EVAL_EVERY   = 50
-    SAVE_EVERY   = 200
+    EVAL_EVERY   = 200
+    SAVE_EVERY   = 500
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR,
                                    weight_decay=0.01)
