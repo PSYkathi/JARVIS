@@ -1,23 +1,9 @@
-# Virtual environment
-jarvis_env/
-
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-
-# Checkpoints (too large for GitHub)
-checkpoints/*.pt
-checkpoints/*.pth
-
-# Large data files
-data/raw/
-data/clean/
-
-# VS Code
-.vscode/
-
-# Windows
-Thumbs.db
-desktop.ini"models/" 
-"data/train_tokens.pt" 
+models/  
+data/train_tokens.pt  
+data/raw/  
+data/clean/  
+data/tokenizer_v2/  
+jarvis_env/  
+__pycache__/  
+*.pt  
+*.pyc 
