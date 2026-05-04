@@ -7,3 +7,8 @@ jarvis_env/
 __pycache__/  
 *.pt  
 *.pyc 
+data/ 
+checkpoints_v3/ 
+jarvis_env/ 
+*.pt 
+*.ids 
