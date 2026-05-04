@@ -173,18 +173,39 @@ def main():
     model.load_state_dict(checkpoint['model'])
     print(f"Resumed from loss: {checkpoint['val_loss']:.4f}")
 
-    # Training hyperparams
-    BATCH_SIZE   = 64
-    CONTEXT      = cfg.context_len
-    LR           = 1e-4
-    EPOCHS       = 10
-    EVAL_EVERY   = 200
-    SAVE_EVERY   = 500
+
+    # --- Training hyperparams (CPU-friendly, Chinchilla-aware-ish) ---
+    BATCH_SIZE         = 32          # per micro-batch
+    CONTEXT            = cfg.context_len
+    LR                 = 3e-4        # peak LR
+    EPOCHS             = 8           # more passes, but not insane for CPU
+    EVAL_EVERY         = 200         # in optimizer steps (after accumulation)
+    SAVE_EVERY         = 500
+    ACCUM_STEPS        = 4           # 32 × 4 = effective batch 128 (smoother grads)
+    WARMUP_STEPS       = 500         # linear warmup steps
+    MIN_LR_FACTOR      = 0.1         # LR never goes below 10% of peak
+
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR,
-                                   weight_decay=0.01)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=EPOCHS * (len(train_data) // (BATCH_SIZE * CONTEXT)))
+                                weight_decay=0.01)
+
+    steps_per_epoch = len(train_data) // (BATCH_SIZE * CONTEXT)
+    total_opt_steps = EPOCHS * steps_per_epoch   # optimizer steps, not micro-batches
+
+    def lr_lambda(step):
+        # step is 0-based optimizer step index
+        if step < WARMUP_STEPS:
+            # linear warmup from 0 → 1
+            return float(step + 1) / float(max(1, WARMUP_STEPS))
+
+        # cosine decay from 1 → MIN_LR_FACTOR
+        progress = (step - WARMUP_STEPS) / float(max(1, total_opt_steps - WARMUP_STEPS))
+        progress = min(max(progress, 0.0), 1.0)
+        cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
+        # scale into [MIN_LR_FACTOR, 1.0]
+        return MIN_LR_FACTOR + (1.0 - MIN_LR_FACTOR) * cosine
+
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
     def get_batch(split_data):
         ix = torch.randint(len(split_data) - CONTEXT - 1,
@@ -210,7 +231,7 @@ def main():
     print(f"{'Step':>6} | {'Train Loss':>10} | {'Val Loss':>10} | {'Time':>8}")
     print("-" * 45)
 
-    step       = 0
+    step       = 0          # counts optimizer steps (after accumulation)
     best_loss  = float('inf')
     start_time = time.time()
 
@@ -218,22 +239,29 @@ def main():
         steps_per_epoch = len(train_data) // (BATCH_SIZE * CONTEXT)
 
         for i in range(steps_per_epoch):
-            xb, yb = get_batch(train_data)
-            _, loss = model(xb, yb)
-
             optimizer.zero_grad()
-            loss.backward()
+            running_loss = 0.0
+
+            # Gradient accumulation: ACCUM_STEPS micro-batches per optimizer step
+            for _ in range(ACCUM_STEPS):
+                xb, yb = get_batch(train_data)
+                _, loss = model(xb, yb)
+                loss = loss / ACCUM_STEPS             # normalize so total grad is correct
+                loss.backward()
+                running_loss += loss.item()
+
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             scheduler.step()
-
             step += 1
+
+            train_loss = running_loss   # average over ACCUM_STEPS
 
             if step % EVAL_EVERY == 0:
                 val_loss  = estimate_val_loss()
                 elapsed   = time.time() - start_time
-                print(f"{step:>6} | {loss.item():>10.4f} | "
-                      f"{val_loss:>10.4f} | {elapsed:>6.0f}s")
+                print(f"{step:>6} | {train_loss:>10.4f} | "
+                    f"{val_loss:>10.4f} | {elapsed:>6.0f}s")
 
                 if val_loss < best_loss:
                     best_loss = val_loss
