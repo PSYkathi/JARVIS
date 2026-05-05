@@ -10,7 +10,7 @@ EMBED_DIM    = 256
 N_HEADS      = 8
 N_LAYERS     = 6
 DROPOUT      = 0.0   # off during inference
-CHECKPOINT = "checkpoints_v3/jarvis_v3_step5000.pt"
+CHECKPOINT = "checkpoints_v3/jarvis_v3_step18000.pt"
 TOKENIZER    = "data/tokenizer_v3"
 DEVICE       = "cuda" if torch.cuda.is_available() else "cpu"
 

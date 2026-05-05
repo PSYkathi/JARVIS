@@ -5,9 +5,9 @@ import os, glob, math, time
 
 
 # ── Config ───────────────────────────────────────────────────
-TOKENIZED_DIR  = "data/tokenized_v3"
-TOKENIZER_DIR  = "data/tokenizer_v3"
-CHECKPOINT_DIR = "checkpoints_v3"
+TOKENIZED_DIR  = "D:/JARVIS/data/tokenized_v3"
+TOKENIZER_DIR  = "D:/JARVIS/data/tokenizer_v3"
+CHECKPOINT_DIR = "D:/JARVIS/checkpoints_v3"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
 VOCAB_SIZE   = 8000
